@@ -23,3 +23,22 @@ $dotnet add package xunit
 $dotnet add package xunit.runner.visualstudio
 $dotnet add package Microsoft.NET.Test.Sdk
 ```
+
+## Working with Docker Compose
+
+Build and run API
+```
+$docker-compose build api
+$docker-compose up api
+$docker-compose ps
+``` 
+
+Access API at http://localhost:5001/api/products
+
+Build and run Web
+```
+$docker-compose build web
+$docker-compose up web
+$docker-compose ps
+``` 
+Access Web at http://localhost:4200
