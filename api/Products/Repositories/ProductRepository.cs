@@ -1,3 +1,4 @@
+using api.Data;
 using api.Products.Models;
 
 namespace api.Products.Repositories;
@@ -9,17 +10,12 @@ public interface IProductRepository
 
 public class ProductRepository : IProductRepository
 {
-    private readonly List<Product> _products;
+    private readonly AppDbContext _context;
 
-    public ProductRepository()
+    public ProductRepository(AppDbContext context)
     {
-        _products = Enumerable.Range(1, 100).Select(i => new Product(
-            i,
-            $"Product {i}",
-            Math.Round(9.99 + i * 1.5, 2),
-            $"https://picsum.photos/seed/product{i}/200/200"
-        )).ToList();
+        _context = context;
     }
 
-    public List<Product> GetAll() => _products;
+    public List<Product> GetAll() => _context.Products.OrderBy(p => p.Id).ToList();
 }

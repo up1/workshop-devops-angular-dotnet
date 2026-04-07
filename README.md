@@ -26,6 +26,13 @@ $dotnet add package Microsoft.NET.Test.Sdk
 
 ## Working with Docker Compose
 
+Build and run SQL Server
+```
+$docker-compose build mssql
+$docker-compose up mssql
+$docker-compose ps
+```
+
 Build and run API
 ```
 $docker-compose build api
