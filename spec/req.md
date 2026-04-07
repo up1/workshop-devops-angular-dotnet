@@ -27,6 +27,34 @@
   * Test pagination functionality
   * Test error handling (e.g., when no products are found or when there is an internal server error)
 
+### Project structure with feature-based organization
+```
+├── api
+│   ├── products
+│   │   ├── ProductsController.cs
+│   │   ├── Product.cs
+│   │   ├── ProductService.cs
+│   │   └── ProductRepository.cs
+│   ├── Startup.cs
+│   └── Program.cs
+├── web
+│   ├── src
+│   │   ├── app
+│   │   │   ├── components
+│   │   │   │   ├── product-item
+│   │   │   │   │   ├── product-item.component.ts
+│   │   │   │   │   ├── product-item.component.html
+│   │   │   │   │   └── product-item.component.css
+│   │   │   ├── services
+│   │   │   │   └── product.service.ts
+│   │   │   ├── app.component.ts
+│   │   │   ├── app.component.html
+│   │   │   └── app.component.css
+│   ├── angular.json
+│   ├── package.json
+│   └── tsconfig.json
+```
+
 ### API Specification of GET `/api/products`
 * Success with 200
 ```
