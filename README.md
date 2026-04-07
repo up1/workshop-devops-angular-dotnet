@@ -26,7 +26,7 @@ $dotnet add package Microsoft.NET.Test.Sdk
 
 ## Working with Docker Compose
 
-Build and run SQL Server
+Build and run [SQL Server](https://learn.microsoft.com/th-th/azure/data-api-builder/deployment/local-container)
 ```
 $docker-compose build mssql
 $docker-compose up mssql
