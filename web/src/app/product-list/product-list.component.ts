@@ -94,7 +94,9 @@ import { ProductItemComponent } from '../product-item/product-item.component';
 })
 export class ProductListComponent implements OnInit {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:5001/api/products';
+  // Get base URL from current location
+  private baseUrl = `${window.location.protocol}//${window.location.hostname}:${window.location.port}`;
+  private apiUrl = `${this.baseUrl}/api/products`;
   private limit = 10;
 
   products = signal<Product[]>([]);
