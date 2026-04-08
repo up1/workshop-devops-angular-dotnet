@@ -1,0 +1,49 @@
+# uninstall-docker.yml - Completely remove Docker from Ubuntu
+---
+- name: Uninstall Docker from Ubuntu
+  hosts: docker_hosts
+  become: true
+
+  tasks:
+    - name: Stop Docker service
+      ansible.builtin.systemd:
+        name: docker
+        state: stopped
+      ignore_errors: true
+
+    - name: Remove Docker packages
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+          - docker-ce-rootless-extras
+        state: absent
+        purge: true
+
+    - name: Remove Docker data directory
+      ansible.builtin.file:
+        path: /var/lib/docker
+        state: absent
+
+    - name: Remove containerd data directory
+      ansible.builtin.file:
+        path: /var/lib/containerd
+        state: absent
+
+    - name: Remove Docker source list (DEB822 format)
+      ansible.builtin.file:
+        path: /etc/apt/sources.list.d/docker.sources
+        state: absent
+
+    - name: Remove Docker source list (legacy format)
+      ansible.builtin.file:
+        path: /etc/apt/sources.list.d/docker.list
+        state: absent
+
+    - name: Remove Docker GPG key
+      ansible.builtin.file:
+        path: /etc/apt/keyrings/docker.asc
+        state: absent

@@ -1,0 +1,49 @@
+# undeploy-app-with-docker.yml - Undeploy the application by stopping and removing Docker containers
+---
+- name: Undeploy application with Docker Compose
+  hosts: docker_hosts
+  become: true
+
+  vars:
+    app_dir: /root/myapp # Directory on target server to store docker-compose.yml
+
+  tasks:
+    # Step 1: Check if docker-compose.yml exists
+    - name: Check if docker-compose.yml exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}/docker-compose.yml"
+      register: compose_file
+
+    # Step 2: Stop and remove containers, networks
+    - name: Stop and remove containers
+      ansible.builtin.command:
+        cmd: docker compose down
+        chdir: "{{ app_dir }}"
+      when: compose_file.stat.exists
+      changed_when: true
+
+    # Step 3: Remove Docker volumes
+    - name: Remove Docker volumes
+      ansible.builtin.command:
+        cmd: docker compose down -v
+        chdir: "{{ app_dir }}"
+      when: compose_file.stat.exists
+      changed_when: true
+
+    # Step 4: Remove Docker images used by the app
+    - name: Remove Docker images
+      ansible.builtin.command:
+        cmd: docker compose down --rmi all
+        chdir: "{{ app_dir }}"
+      when: compose_file.stat.exists
+      changed_when: true
+
+    # Step 5: Remove application directory
+    - name: Remove application directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: absent
+
+    - name: Undeploy complete
+      ansible.builtin.debug:
+        msg: "Application has been successfully undeployed and cleaned up."

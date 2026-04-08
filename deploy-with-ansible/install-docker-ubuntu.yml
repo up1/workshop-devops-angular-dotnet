@@ -1,0 +1,149 @@
+# install-docker-ubuntu.yml - Install Docker Engine on Ubuntu
+# Based on https://docs.docker.com/engine/install/ubuntu/
+---
+- name: Install Docker on Ubuntu
+  hosts: docker_hosts
+  become: true
+  gather_facts: true
+
+  vars:
+    docker_users:
+      - ubuntu
+
+  tasks:
+    # Step 1: Remove any conflicting packages
+    - name: Remove old/conflicting Docker packages if present
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose
+          - docker-compose-v2
+          - docker-doc
+          - podman-docker
+          - containerd
+          - runc
+        state: absent
+
+    # Step 2: Install prerequisites
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+        state: present
+        update_cache: true
+
+    # Step 3: Add Docker's official GPG key
+    - name: Create directory for Docker GPG key
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Download Docker GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "a+r"
+
+    # Step 4: Add the Docker repository (DEB822 format)
+    - name: Get system architecture
+      ansible.builtin.command: dpkg --print-architecture
+      register: dpkg_arch
+      changed_when: false
+
+    - name: Get Ubuntu codename
+      ansible.builtin.shell: . /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+      register: ubuntu_codename
+      changed_when: false
+
+    - name: Add Docker apt repository (DEB822 format)
+      ansible.builtin.copy:
+        content: |
+          Types: deb
+          URIs: https://download.docker.com/linux/ubuntu
+          Suites: {{ ubuntu_codename.stdout }}
+          Components: stable
+          Architectures: {{ dpkg_arch.stdout }}
+          Signed-By: /etc/apt/keyrings/docker.asc
+        dest: /etc/apt/sources.list.d/docker.sources
+        mode: "0644"
+
+    - name: Update apt cache after adding Docker repo
+      ansible.builtin.apt:
+        update_cache: true
+
+    # Step 5: Install Docker Engine
+    - name: Install Docker Engine and related packages
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    # Step 6: Ensure Docker service is running
+    - name: Start and enable Docker service
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    # Step 7: Add users to the docker group
+    - name: Add users to the docker group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: docker
+        append: true
+      loop: "{{ docker_users }}"
+
+    # Step 8: Configure Docker daemon
+    - name: Create Docker daemon configuration
+      ansible.builtin.copy:
+        content: |
+          {
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "10m",
+              "max-file": "3"
+            },
+            "storage-driver": "overlay2",
+            "live-restore": true
+          }
+        dest: /etc/docker/daemon.json
+        mode: "0644"
+      notify: restart docker
+
+    # Step 9: Verify installation
+    - name: Check Docker version
+      ansible.builtin.command: docker version
+      register: docker_version
+      changed_when: false
+
+    - name: Check Docker Compose version
+      ansible.builtin.command: docker compose version
+      register: compose_version
+      changed_when: false
+
+    - name: Display versions
+      ansible.builtin.debug:
+        msg: |
+          Docker: {{ docker_version.stdout_lines[0] }}
+          Compose: {{ compose_version.stdout }}
+
+    - name: Run hello-world to verify Docker works
+      ansible.builtin.command: docker run --rm hello-world
+      register: hello_result
+      changed_when: false
+
+    - name: Docker is working
+      ansible.builtin.debug:
+        msg: "Docker installation verified successfully."
+
+  handlers:
+    - name: restart docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted

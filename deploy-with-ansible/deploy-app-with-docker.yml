@@ -1,0 +1,97 @@
+# deploy-app-with-docker.yml - Deploy a simple web application using Docker Compose
+---
+- name: Deploy application with Docker Compose
+  hosts: docker_hosts
+  become: true
+
+  vars:
+    app_dir: /root/myapp # Directory on target server to store docker-compose.yml
+
+  tasks:
+    # Step 0: Pre-flight checks
+    - name: Check Docker is installed and running
+      ansible.builtin.command: docker info
+      changed_when: false
+
+    - name: Check Docker Compose is available
+      ansible.builtin.command: docker compose version
+      changed_when: false
+
+    # Step 1: Create application directory on target server
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    # Step 2: Copy docker-compose.yml to target server
+    - name: Copy docker-compose.yml to target server
+      ansible.builtin.copy:
+        src: myapp/docker-compose.yml
+        dest: "{{ app_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    # Step 3: Pull the latest images
+    - name: Pull Docker images
+      ansible.builtin.command:
+        cmd: docker compose pull
+        chdir: "{{ app_dir }}"
+      changed_when: true
+
+    # Step 4: Deploy the application with Docker Compose
+    - name: Start application with Docker Compose
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: "{{ app_dir }}"
+      changed_when: true
+
+    # Step 5: Wait for MSSQL to be healthy
+    - name: Wait for MSSQL to be healthy
+      ansible.builtin.command:
+        cmd: docker compose ps --format json mssql
+        chdir: "{{ app_dir }}"
+      register: mssql_status
+      until: "'healthy' in mssql_status.stdout"
+      retries: 12
+      delay: 10
+      changed_when: false
+
+    # Step 6: Verify all containers are running
+    - name: Check running containers
+      ansible.builtin.command:
+        cmd: docker compose ps
+        chdir: "{{ app_dir }}"
+      register: compose_ps
+      changed_when: false
+
+    - name: Display running containers
+      ansible.builtin.debug:
+        msg: "{{ compose_ps.stdout_lines }}"
+
+    # Step 7: Verify services are accessible
+    - name: Verify API is accessible
+      ansible.builtin.uri:
+        url: http://localhost:5001/health
+        method: GET
+        status_code: [200]
+      register: api_check
+      retries: 5
+      delay: 5
+      until: api_check is not failed
+
+    - name: Verify Web is accessible
+      ansible.builtin.uri:
+        url: http://localhost:4200/health
+        method: GET
+        status_code: 200
+      register: web_check
+      retries: 5
+      delay: 5
+      until: web_check is not failed
+
+    - name: Deployment complete
+      ansible.builtin.debug:
+        msg: |
+          Application deployed successfully!
+          - Web: http://{{ ansible_host }}:4200
+          - API: http://{{ ansible_host }}:5001
