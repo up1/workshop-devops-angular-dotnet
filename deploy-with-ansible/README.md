@@ -22,6 +22,9 @@ $pip list
 
 $ansible --version
 ansible [core 2.20.4]
+
+$ansible-playbook --version
+ansible-playbook [core 2.20.4]
 ```
 
 ## Create and Run Ansible Notebook
